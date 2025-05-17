@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007bff">
+  <link rel="stylesheet" href="style.css">
+  <title>Calculadora de Garantías</title>
+</head>
+<body>
+  <div class="container">
+    <div class="form-container">
+      <div class="header">
+        <h2>Calculadora de Garantías</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="vma">VMA ($ en miles):</label>
+        <input type="text" id="vma" min="0" required />
+      </div>
+
+      <div class="form-group">
+        <label for="plazo">Plazo (meses):</label>
+        <input type="number" id="plazo" min="0" required />
+      </div>
+
+      <div class="form-group">
+        <label for="tipo-unidad">Tipo de unidad:</label>
+        <select id="tipo-unidad">
+          <option value="">Seleccione</option>
+          <option value="local">Local</option>
+          <option value="gondola">Góndola</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="region">Región:</label>
+        <select id="region">
+          <option value="">Seleccione</option>
+          <option value="amba">AMBA</option>
+          <option value="interior">Interior</option>
+        </select>
+      </div>
+<div class="form-group">
+        <label for="tipo-garantia">Tipo de Garantía:</label>
+        <select id="tipo-garantia">
+          <option value="">Seleccione</option>
+          <option value="fianza">Fianza</option>
+          <option value="caucion">Caución</option>
+          <option value="aval">Aval</option>
+          <option value="hipoteca">Hipoteca</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="garantia-presentada">Garantía presentada:</label>
+        <div style="display: flex;">
+          <select id="moneda" style="margin-right: 10px;">
+            <option value="usd">USD</option>
+            <option value="ars">$</option>
+          </select>
+          <input type="text" id="monto-garantia" min="0" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <button onclick="calcular()">Calcular</button>
+        <button onclick="borrar()">Borrar</button>
+        <button onclick="agregar()">Agregar</button>
+      </div>
+
+      <div class="info" id="tipo-cambio-info">
+        Tipo de Cambio: <span id="tipo-cambio-value"></span> | Mes Vigente: 
+        <span id="mes-vigente"></span>
+      </div>
+    </div>
+
+    <div class="result" id="resultado" style="display:none;">
+      <p><strong>VMA:</strong> <span id="vma-resultado"></span></p>
+      <p><strong>Plazo (meses):</strong> <span id="plazo-resultado"></span></p>
+      <p><strong>Tipo de unidad:</strong> <span id="tipo-unidad-resultado"></span></p>
+      <p><strong>Región:</strong> <span id="region-resultado"></span></p>
+      <p><strong>Tipo de garantía:</strong> <span id="tipo-garantia-resultado"></span></p>
+      <p><strong>Garantía presentada:</strong> <span id="monto-garantia-resultado"></span></p>
+      <br>
+      <p class="monto">Monto calculado: <span id="monto-garantia-calculado"></span></p>
+      <br>
+      <p id="cumple-result" class=""></p>
+      <p id="diferencia" class=""></p>
+    </div>
+
+    <div class="result" id="historial-container" style="margin-top: 20px; background-color: #e0e0e0; color: #000;">
+
+    <h3>Historial Garantías</h3>
+      <table id="historial" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #ccc;">
+             <th style="border: 1px solid #999; padding: 5px;">VMA</th>
+             <th style="border: 1px solid #999; padding: 5px;">Plazo</th>
+             <th style="border: 1px solid #999; padding: 5px;">Unidad</th>
+             <th style="border: 1px solid #999; padding: 5px;">Región</th>
+             <th style="border: 1px solid #999; padding: 5px;">Garantía</th>
+             <th style="border: 1px solid #999; padding: 5px;">Monto Calculado</th>
+         </tr>
+        </thead>
+          <tbody></tbody>
+      </table>
+</div>
+
+
+  <script>
+    const tipoCambio = 1190;
+    let totalGarantiaRequerida = 0;
+    let primeraCarga = false;
+
+    function formatNumberWithCommas(number) {
+      const [integer, decimal] = number.toFixed(2).split('.');
+      return integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + decimal;
+    }
+
+    function parseNumber(value) {
+      return parseFloat(value.replace(/\./g, '').replace(/,/g, '.'));
+    }
+
+    const ipcData = [
+      { date: "may-25", ipc: 1.0 }, { date: "jun-25", ipc: 1.0210 },
+      { date: "jul-25", ipc: 1.0200 }, { date: "ago-25", ipc: 1.0180 },
+      { date: "sept-25", ipc: 1.0180 }, { date: "oct-25", ipc: 1.0190 },
+      { date: "nov-25", ipc: 1.0170 }, { date: "dic-25", ipc: 1.0170 },
+      { date: "ene-26", ipc: 1.0170 }, { date: "feb-26", ipc: 1.0170 },
+      { date: "mar-26", ipc: 1.0170 }, { date: "abr-26", ipc: 1.0170 },
+    ];
+
+    function calcular() {
+      let vma = parseNumber(document.getElementById("vma").value);
+      let plazo = parseInt(document.getElementById("plazo").value);
+      const tipoUnidad = document.getElementById("tipo-unidad").value;
+      const region = document.getElementById("region").value;
+      const tipoGarantia = document.getElementById("tipo-garantia").value;
+      const moneda = document.getElementById("moneda").value;
+      let montoGarantia = parseNumber(document.getElementById("monto-garantia").value);
+
+      if (!vma || !plazo || !tipoUnidad || !region || !tipoGarantia || !moneda || !montoGarantia) {
+        alert("Faltan completar datos");
+        return;
+      }
+
+      if (vma < 0 || plazo < 0 || montoGarantia < 0) {
+        alert("No puede haber valores negativos");
+        return;
+      }
+
+      let factor = tipoUnidad === 'local' ? 1.55 : 1.30;
+      let maxPlazo = tipoGarantia === "fianza" ? (region === "amba" ? 24 : 18) : 12;
+      plazo = Math.min(plazo, maxPlazo);
+
+      let resultado = 0;
+      if (tipoGarantia === "aval") {
+        let vmaAjustado = vma, suma = 0;
+        for (let i = 0; i < plazo; i++) {
+          const ipc = ipcData[i]?.ipc || 1.017;
+          vmaAjustado *= ipc;
+          suma += vmaAjustado;
+        }
+        resultado = suma * factor;
+      } else {
+        resultado = vma * plazo * factor;
+      }
+
+      totalGarantiaRequerida = resultado;
+      primeraCarga = true;
+
+      mostrarResultados(resultado, montoGarantia, moneda, vma, plazo, tipoUnidad, region, tipoGarantia);
+    }
+
+    function agregar() {
+      if (!primeraCarga) {
+        alert("Primero debe realizar un cálculo inicial.");
+        return;
+      }
+
+      let vma = parseNumber(document.getElementById("vma").value);
+      let plazo = parseInt(document.getElementById("plazo").value);
+      const tipoUnidad = document.getElementById("tipo-unidad").value;
+      const region = document.getElementById("region").value;
+      const tipoGarantia = document.getElementById("tipo-garantia").value;
+
+      if (!vma || !plazo || !tipoUnidad || !region || !tipoGarantia) {
+        alert("Faltan completar datos");
+        return;
+      }
+
+      if (vma < 0 || plazo < 0) {
+        alert("No puede haber valores negativos");
+        return;
+      }
+
+      let factor = tipoUnidad === 'local' ? 1.55 : 1.30;
+      let maxPlazo = tipoGarantia === "fianza" ? (region === "amba" ? 24 : 18) : 12;
+      plazo = Math.min(plazo, maxPlazo);
+
+      let resultado = 0;
+      if (tipoGarantia === "aval") {
+        let vmaAjustado = vma, suma = 0;
+        for (let i = 0; i < plazo; i++) {
+          const ipc = ipcData[i]?.ipc || 1.017;
+          vmaAjustado *= ipc;
+          suma += vmaAjustado;
+        }
+        resultado = suma * factor;
+      } else {
+        resultado = vma * plazo * factor;
+      }
+
+      totalGarantiaRequerida += resultado;
+
+      const moneda = document.getElementById("moneda").value;
+      const montoGarantia = parseNumber(document.getElementById("monto-garantia").value);
+
+      mostrarResultados(totalGarantiaRequerida, montoGarantia, moneda, vma, plazo, tipoUnidad, region, tipoGarantia);
+    }
+
+    function mostrarResultados(resultado, montoGarantia, moneda, vma, plazo, tipoUnidad, region, tipoGarantia) {
+      const montoConvertido = moneda === "ars" ? montoGarantia / tipoCambio : montoGarantia;
+      const cumple = montoConvertido >= resultado / tipoCambio;
+      const diferenciaUSD = montoConvertido - (resultado / tipoCambio);
+      const diferenciaElement = document.getElementById("diferencia");
+      const textoDiferencia = diferenciaUSD < 0 ? "Faltante" : "Sobrante";
+      diferenciaElement.textContent = `${textoDiferencia}: USD ${formatNumberWithCommas(Math.abs(diferenciaUSD))}`;
+      diferenciaElement.className = diferenciaUSD < 0 ? "no-cumple" : "cumple";
+
+// 🔽 Agregar fila al historial
+      const tablaHistorial = document.getElementById("historial").querySelector("tbody");
+      const fila = document.createElement("tr");fila.innerHTML = `
+        <td style="border: 1px solid #999; padding: 5px;">$${formatNumberWithCommas(vma)}</td>
+        <td style="border: 1px solid #999; padding: 5px;">${plazo}</td>
+        <td style="border: 1px solid #999; padding: 5px;">${tipoUnidad}</td>
+        <td style="border: 1px solid #999; padding: 5px;">${region}</td>
+        <td style="border: 1px solid #999; padding: 5px;">${tipoGarantia}</td>
+        <td style="border: 1px solid #999; padding: 5px;">$${formatNumberWithCommas(resultado)}</td>
+  `;
+      tablaHistorial.appendChild(fila);
+
+      document.getElementById("resultado").style.display = "block";
+      document.getElementById("vma-resultado").textContent = `$${formatNumberWithCommas(vma)}`;
+      document.getElementById("plazo-resultado").textContent = plazo;
+      document.getElementById("tipo-unidad-resultado").textContent = tipoUnidad;
+      document.getElementById("region-resultado").textContent = region;
+      document.getElementById("tipo-garantia-resultado").textContent = tipoGarantia;
+      document.getElementById("monto-garantia-resultado").textContent = `${moneda === 'usd' ? 'USD' : '$'} ${formatNumberWithCommas(montoGarantia)}`;
+      document.getElementById("monto-garantia-calculado").textContent =
+        `$${formatNumberWithCommas(resultado)} / USD ${formatNumberWithCommas(resultado / tipoCambio)}`;
+      const cumpleResult = document.getElementById("cumple-result");
+      cumpleResult.textContent = cumple ? "Cumple" : "No Cumple. Se requieren garantías adicionales";
+      cumpleResult.className = cumple ? "cumple" : "no-cumple";
+    };
+    
+
+    function borrar() {
+      ["vma", "plazo", "tipo-unidad", "region", "tipo-garantia", "moneda", "monto-garantia"].forEach(id => {
+        const el = document.getElementById(id);
+        el.value = id === "moneda" ? "usd" : "";
+      });
+      document.getElementById("resultado").style.display = "none";
+    }
+ 
+window.onload = function() {
+    const fechaActual = new Date();
+    const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const mesVigente = meses[fechaActual.getMonth()];
+    const anioVigente = String(fechaActual.getFullYear()).slice(-2);
+    document.getElementById("tipo-cambio-value").textContent = tipoCambio;
+    document.getElementById("mes-vigente").textContent = `${mesVigente}-${anioVigente}`;
+};
+
+  </script>
+</body>
+</html>
