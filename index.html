@@ -42,8 +42,24 @@
           <option value="interior">Interior</option>
         </select>
       </div>
-<div class="form-group">
-        <label for="tipo-garantia">Tipo de Garantía:</label>
+      
+      <div class="form-group">
+       <label for="tipo-garantia">
+	       Tipo de Garantía:
+	       <span class="info-icon">i
+	         <span class="tooltip">
+		        <p><strong>Factores:</strong> Locales 1,55 / Góndolas 1,3</p>
+    		    <p><strong>1. FIANZA:</strong></p>
+     		    <p><strong>AMBA:</strong> VMA × Plazo × Factor (Plazo máx: 24 meses)</p>
+            <p><strong>Interior:</strong> VMA × Plazo × Factor (Plazo máx: 18 meses)</p>
+    		    <p><strong>2. CAUCIÓN:</strong></p>
+      	    <p><strong>AMBA e Interior:</strong> VMA × Plazo × Factor (Plazo máx: 12 meses)</p>
+		        <p><strong>2. AVAL:</strong></p>
+		        <p><strong>AMBA e Interior:</strong> SUMA(VMAaxi) × Plazo × Factor (Plazo máx: 12 meses)</p>	
+          </span>
+         </span>
+       </label>
+	
         <select id="tipo-garantia">
           <option value="">Seleccione</option>
           <option value="fianza">Fianza</option>
@@ -54,15 +70,23 @@
       </div>
 
       <div class="form-group">
-        <label for="garantia-presentada">Garantía presentada:</label>
-        <div style="display: flex;">
-          <select id="moneda" style="margin-right: 10px;">
-            <option value="usd">USD</option>
-            <option value="ars">$</option>
-          </select>
-          <input type="text" id="monto-garantia" min="0" required />
-        </div>
+        <label for="garantia-presentada" class="label-con-tooltip">
+	       Garantía presentada:
+    	   <span class="info-icon">i
+	         <span class="tooltip">
+		Es la garantía que va a presentar la SOCIEDAD/CLIENTE por todos los contratos vigentes y nuevos a futuro. No cambiar al agregar nuevas ofertas
+           </span>
+         </span>
+	      </label>
+        <div style="display: flex;">
+         <select id="moneda" style="margin-right: 10px;">
+           <option value="usd">USD</option>
+           <option value="ars">$</option>
+         </select>
+         <input type="text" id="monto-garantia" min="0" required />
+        </div>
       </div>
+
 
       <div class="form-group">
         <button onclick="calcular()">Calcular</button>
